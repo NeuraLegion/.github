@@ -1,0 +1,55 @@
+name: Neuralegion CI
+
+on:
+  push:
+    branches: [ $default-branch ]
+  pull_request:
+    branches: [ $default-branch ]
+
+
+jobs:
+  check-format:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check sources format
+        run: echo "Run formatter"
+
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build code
+        run: echo "Run builder"
+
+  make-release:
+    runs-on: ubuntu-latest
+    container:
+      image: neuralegion/devops
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Login into ECR
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: eval $(aws ecr get-login --no-include-email)
+
+      - name: Build release
+        env:
+          AWS_DOCKER_REGISTRY: ${{ secrets.AWS_DOCKER_REGISTRY }}
+        run: |
+          set -x
+          BRANCH=${GITHUB_REF##*/}
+          docker build . \
+            --tag "$AWS_DOCKER_REGISTRY:$BRANCH" \
+            --build-arg SSH_PRIVATE_KEY="${{ secrets.NEXPLOIT_MACHINE_USER }}" \
+            --build-arg NEXTEMPLATEJS_COMMIT=commit \
+            --build-arg SENTRY_ENVIRONMENT=$BRANCH \
+            --build-arg SENTRY_RELEASE=$GITHUB_SHA
+          docker push --all-tags $AWS_DOCKER_REGISTRY
