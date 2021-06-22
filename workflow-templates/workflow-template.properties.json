@@ -1,0 +1,13 @@
+{
+    "name": "Neuralegion Workflow",
+    "description": "Neuralegion CI workflow template.",
+    "iconName": "neuralegion",
+    "categories": [
+        "Any"
+    ],
+    "filePatterns": [
+        "package.json$",
+        "^Dockerfile",
+        ".*\\.md$"
+    ]
+}
